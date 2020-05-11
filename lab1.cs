@@ -1,11 +1,8 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Numerics;
+#define PART_2_ON
 using System;
 using static System.Math;
 using Rychusoft.NumericalLibraries.Integral;
+
 
 namespace SandBox
 {
@@ -60,91 +57,55 @@ namespace SandBox
             {
                 int N = 10;// N + 1 = 11 = num of nodes 
                 double h = 1.0 / N;
-                double[] x = new double[N + 1];
-                for (int i = 0; i <= N; i++)
-                {
-                    x[i] = i * h;
-                }
-                double[] a = new double[N - 2];
-                double[] c = new double[N - 1];
-                double[] b = new double[N - 2];
-                double[] f = new double[N - 1];
-                double A_0 = 2.0 / h + 1 + h / 4;
-                double A_1 = -1.0 / h - Tan(1) + h / 2 * (1 - Tan(1));
-
-                f[0] = Sin(x[1]) - 2 * Cos(x[1]) - ((2 - x[1]) / h / h + 1.0 / 2 / h) / A_0 * (1 + 5.0 / 4 * h);
-                f[N - 2] = Sin(x[N - 1]) - 2 * Cos(x[N - 1]) + ((2 - x[N - 1]) / h / h - 1.0 / 2 / h) * h / 2 / A_1 * (Sin(1) - 2 * Cos(1));
-                for (int i = 2; i <= N - 2; i++)
-                {
-                    f[i - 1] = Sin(x[i]) - 2 * Cos(x[i]);
-                }
-
-                c[0] = (-2 * (2 - x[1]) / h / h - x[1]) + (2.0 / h / A_0) * ((2 - x[1]) / h / h + 1.0 / 2 / h);
-                c[N - 2] = (-2 * (2 - x[N - 1]) / h / h - x[N - 1]) - 1.0 / h / A_1 * ((2 - x[N - 1]) / h / h - 1.0 / 2 / h);
-                for (int i = 2; i <= N - 2; i++)
-                {
-                    c[i - 1] = -2 * (2 - x[i]) / h / h - x[i];
-                }
-
-                for (int i = 2; i <= N - 1; i++)
-                {
-                    a[i - 2] = -(2 - x[i]) / h / h - 1.0 / 2 / h;
-                }
-
-                for (int i = 1; i <= N - 2; i++)
-                {
-                    b[i - 1] = -(2 - x[i]) / h / h + 1.0 / 2 / h;
-                }
-
-
-                Progonka prg = new Progonka(a, c, b, f);
-                prg.PerformProgonka();
-                double[] y = new double[prg.y.Length + 2];
-                for (int i = 0; i < prg.y.Length; i++)
-                {
-                    y[i + 1] = prg.y[i];
-                }
-                y[N] = -1.0 / h / A_1 * y[N - 1] - h / 2 / A_1 * (Sin(1) - 2 * Cos(1));
-                y[0] = 2.0 / h / A_0 * y[1] + 1.0 / A_0 * (1 + 5.0 / 4 * h);
-
-                foreach (double res in y) { Console.WriteLine(res); }
+                double X(double i) => i * h;
+                double[] f, c, a, b, y1, y2, y3;
+                Progonka prg;
 
                 //###################################################################################################################
-                double X(double i) => i * h;
+                f = new double[N + 1];
+                f[0] = 1 + 5.0 / 4 * h;
+                f[N] = h / 2 * (Sin(1) - 2 * Cos(1));
+                for (int i = 1; i <= N - 1; i++) { f[i] = Sin(X(i)) - 2 * Cos(X(i)); }
 
-                //Func<Func<double, double>, double, double, double> integrMiddle = (func, a, b) => func((a + b) / 2) * (b - a);
+                c = new double[N + 1];
+                c[0] = 2.0 / h + 1 + h / 4;
+                c[N] = -1.0 / h - Tan(1) - h / 2 * (1 - Tan(1));
+                for (int i = 1; i <= N - 1; i++) { c[i] = -2 * (2 - X(i)) / h / h - X(i); }
 
-                //double rev_k_func(double x) => 1.0 / (2 - x);
-                //double k_func(double x) => 2 - x;
-                //double q_func(double x) => x;
-                //double f_func(double x) => 2 * Cos(x) - Sin(x);
+                a = new double[N];
+                a[N - 1] = -1.0 / h;
+                for (int i = 1; i <= N - 1; i++) { a[i - 1] = -(2 - X(i)) / h / h - 1.0 / 2 / h; }
 
+                b = new double[N];
+                b[0] = 2.0 / h;
+                for (int i = 1; i <= N - 1; i++) { b[i] = -(2 - X(i)) / h / h + 1.0 / 2 / h; }
+
+                prg = new Progonka(a, c, b, f);
+                prg.PerformProgonka();
+                y1 = (double[])prg.y.Clone();
+                foreach (var i in y1) { Console.WriteLine(i); }
+                
+                //###################################################################################################################
                 string k_str = "2 - x";
                 string rev_k_str = "1.0/(2 - x)";
                 string q_str = "x";
                 string f_str = "2 * cos(x) - sin(x)";
-                double hi0 = 1, hi1 = Tan(1), g0 = 1, g1 = 0, half = 1.0 / 2;
+                double hi0 = 1, hi1 = Tan(1), g0 = 1, g1 = 0, half = 1.0 / 2, fi_0, fi_N, d_0, d_N;
 
-                //string k_str = "cos(x)^2 + 1";
-                //string rev_k_str = "1.0/(cos(x)^2 + 1)";
-                //string q_str = "1";
-                //string f_str = "sin(x)^2";
-                //double hi0 = 1, hi1 = 1, g0 = 0, g1 = 1, half = 1.0 / 2;
-
-                double a_i(double i) => h / new Integral(rev_k_str, X(i - 1), X(i)).ComputeIntegral();
-                double d_i(double i) => 1.0 / h * new Integral(q_str, X(i - half), X(i + half)).ComputeIntegral();
-                double phi_i(double i) => 1.0 / h * new Integral(f_str, X(i - half), X(i + half)).ComputeIntegral();
-
+                Func<double, double> a_i = i => h / new Integral(rev_k_str, X(i - 1), X(i)).ComputeIntegral();
+                Func<double, double> d_i = i => 1.0 / h * new Integral(q_str, X(i - half), X(i + half)).ComputeIntegral();
+                Func<double, double> phi_i = i => 1.0 / h * new Integral(f_str, X(i - half), X(i + half)).ComputeIntegral();
+#if PART_2_ON
                 f = new double[N + 1];
-                var fi_0 = 2.0 / h * new Integral(f_str, 0, half).ComputeIntegral();
-                var fi_N = 2.0 / h * new Integral(f_str, 1 - half, 1).ComputeIntegral();
+                fi_0 = 2.0 / h * new Integral(f_str, 0, half * h).ComputeIntegral();
+                fi_N = 2.0 / h * new Integral(f_str, 1 - half * h, 1).ComputeIntegral();
                 f[0] = -(g0 + h / 2 * fi_0);
                 f[N] = -(g1 + h / 2 * fi_N);
                 for (int i = 1; i <= N - 1; i++) { f[i] = -phi_i(i); }
 
                 c = new double[N + 1];
-                var d_0 = 2.0 / h * new Integral(q_str, 0, half).ComputeIntegral();
-                var d_N = 2.0 / h * new Integral(q_str, 1 - half, 1).ComputeIntegral();
+                d_0 = 2.0 / h * new Integral(q_str, 0, half * h).ComputeIntegral();
+                d_N = 2.0 / h * new Integral(q_str, 1 - half * h, 1).ComputeIntegral();
                 c[0] = -a_i(1) / h - h / 2 * d_0 - hi0;
                 c[N] = -a_i(N) / h - hi1 - h / 2 * d_N;
                 for (int i = 1; i <= N - 1; i++) { c[i] = -a_i(i + 1) / h / h - a_i(i) / h / h - d_i(i); }
@@ -157,15 +118,55 @@ namespace SandBox
                 b[0] = -(a_i(1) / h);
                 for (int i = 1; i <= N - 1; i++) { b[i] = -(a_i(i + 1) / h / h); }
 
-                Progonka prg2 = new Progonka(a, c, b, f);
-                prg2.PerformProgonka();
-                double[] y2 = new double[prg2.y.Length];
                 Console.WriteLine();
-                for (int i = 0; i < prg2.y.Length; i++)
-                {
-                    y2[i] = prg2.y[i];
-                    Console.WriteLine(prg2.y[i]);
-                }
+                prg = new Progonka(a, c, b, f);
+                prg.PerformProgonka();
+                y2 = (double[])prg.y.Clone();
+                foreach (var i in y2) { Console.WriteLine(i); }
+#endif
+                //###################################################################################################################
+
+                Func<Func<double, double>, double, double, double> intMid = (func, a, b) => func((a + b) / 2) * (b - a);
+                double k_func(double x) => 2 - x;
+                double q_func(double x) => x;
+                double f_func(double x) => 2 * Cos(x) - Sin(x);
+
+                a_i = i => 1.0 / h * (intMid(k_func, X(i - 1), X(i)) - 
+                intMid(x => q_func(x) * (X(i) - x) * (x - X(i - 1)), X(i - 1), X(i)));
+
+                d_i = i => 1.0 / h / h * (intMid(x => q_func(x) * (x - X(i - 1)), X(i - 1), X(i)) +
+                intMid(x => q_func(x) * (X(i + 1) - x), X(i), X(i + 1)));
+
+                phi_i = i => 1.0 / h / h * (intMid(x => f_func(x) * (x - X(i - 1)), X(i - 1), X(i)) +
+                intMid(x => f_func(x) * (X(i + 1) - x), X(i), X(i + 1)));
+
+                f = new double[N + 1];
+                fi_0 = 2.0 / h / h * intMid(x => f_func(x) * (h - x), 0, h);
+                fi_N = 2.0 / h / h * intMid(x => f_func(x) * (x - 1 + h), 1-h, 1);
+                f[0] = -(g0 + h / 2 * fi_0);
+                f[N] = -(g1 + h / 2 * fi_N);
+                for (int i = 1; i <= N - 1; i++) { f[i] = -phi_i(i); }
+
+                c = new double[N + 1];
+                d_0 = 2.0 / h / h * intMid(x => q_func(x) * (h - x), 0, h);
+                d_N = 2.0 / h / h * intMid(x => q_func(x) * (x - 1 + h), 1 - h, 1);
+                c[0] = -a_i(1) / h - h / 2 * d_0 - hi0;
+                c[N] = -a_i(N) / h - hi1 - h / 2 * d_N;
+                for (int i = 1; i <= N - 1; i++) { c[i] = -a_i(i + 1) / h / h - a_i(i) / h / h - d_i(i); }
+
+                a = new double[N];
+                a[N - 1] = -(a_i(N) / h);
+                for (int i = 1; i <= N - 1; i++) { a[i - 1] = -(a_i(i) / h / h); }
+
+                b = new double[N];
+                b[0] = -(a_i(1) / h);
+                for (int i = 1; i <= N - 1; i++) { b[i] = -(a_i(i + 1) / h / h); }
+
+                Console.WriteLine();
+                prg = new Progonka(a, c, b, f);
+                prg.PerformProgonka();
+                y3 = (double[])prg.y.Clone();
+                foreach (var i in y3) { Console.WriteLine(i); }
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }
         }
