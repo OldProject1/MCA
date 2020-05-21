@@ -52,13 +52,21 @@ namespace SandBox
 
     class Solver
     {
-        public static void Solve(int N) {
-            double h = 1.0 / N;
-            double X(double i) => i * h;
-            double[] f, c, a, b, y1, y2, y3;
+        public static void Solve(double tau) {
+            double h = 0.05;
+            int N2 = (int)Round(1 / tau), 
+                N1 = (int)Round(1 / h);
+            double x(double i) => i * h > 1 ? throw new Exception() : i * h;
+            double t(double j) => j * tau > 1 ? throw new Exception() : j * tau;
+            double[] f, c, a, b;
             Progonka prg;
 
-            
+            double[,] y = new double[N2 + 1, N1 + 1];
+            for (int i = 0; i <= N1; i++) { y[0, i] = 1; }
+            for (int j = 0; j <= N2; j++) { y[j, 0] = 1; }
+
+
+
         }
     }
     class MyClass
@@ -97,6 +105,12 @@ namespace SandBox
         {
             try
             {
+                
+                double tau = 0.05;
+
+                int LineByTime(double tau, double time) => (int)Math.Round(time / tau);//0, 1 ... N_2 - 1
+
+
                 int N;
 
             }
