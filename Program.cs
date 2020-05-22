@@ -52,20 +52,55 @@ namespace SandBox
 
     class Solver
     {
-        public static void Solve(double tau) {
+        public static double[,] Solve(double tau) {
             double h = 0.05;
             int N2 = (int)Round(1 / tau), 
                 N1 = (int)Round(1 / h);
-            double x(double i) => i * h > 1 ? throw new Exception() : i * h;
-            double t(double j) => j * tau > 1 ? throw new Exception() : j * tau;
-            double[] f, c, a, b;
+            double x(double i) => i * h > 1 ? throw new Exception("out of grid") : i * h;
+            double t(double j) => j * tau > 1 ? throw new Exception("out of grid") : j * tau;
+            double mu(double t) => (t - 1) * Exp(-t);
+            double phi(double x, double t) => -(x + t * t) * Exp(-x * t);
+            double[] f, c, a, b, res;
+            double[,] y = new double[N2 + 1, N1 + 1];
             Progonka prg;
 
-            double[,] y = new double[N2 + 1, N1 + 1];
             for (int i = 0; i <= N1; i++) { y[0, i] = 1; }
             for (int j = 0; j <= N2; j++) { y[j, 0] = 1; }
 
+            res = new double[N1 + 1];
+            f = new double[N1 + 1];
+            c = new double[N1 + 1];
+            a = new double[N1];
+            b = new double[N1];
+            for (int j = 0; j <= N2 - 1; j++)
+            {
+                Array.Clear(f, 0, f.Length);
+                Array.Clear(c, 0, c.Length);
+                Array.Clear(a, 0, a.Length);
+                Array.Clear(b, 0, b.Length);
 
+                c[0] = 1;
+                c[N1] = 1.0 / h + 1 + h / 2 / tau;
+                for (int i = 1; i <= N1 - 1; i++) { c[i] = 1.0 / tau + 2.0 / h / h; }
+
+                a[N1 - 1] = 1.0 / h;
+                for (int i = 1; i <= N1 - 1; i++) { a[i - 1] = 1.0 / h / h; }
+
+                b[0] = 0;
+                for (int i = 1; i <= N1 - 1; i++) { b[i] = 1.0 / h / h; }
+
+                f[0] = 1;
+                f[N1] = -mu(t(j + 1)) + h / 2 / tau * y[j, N1] + h / 2 * phi(1, t(j + 1));
+                for (int i = 1; i <= N1 - 1; i++) { f[i] = phi(x(i), t(j)) + y[j, i] / tau; }
+
+                prg = new Progonka(a, c, b, f);
+                prg.PerformProgonka();
+                for (int i = 0; i <= N1; i++)
+                {
+                    y[j + 1, i] = prg.y[i];
+                }
+            }
+            return y;
 
         }
     }
@@ -82,37 +117,64 @@ namespace SandBox
             return norma.Max();
         }
 
-        static void Show(double[] y, string str = "") {
+        static void ShowLikeColumn(double[] y, string str = "") {
             Console.WriteLine(str);
             foreach (var item in y)
             {
-                Console.WriteLine("{0:f8}", item);
+                Console.WriteLine("{0:f6}", item);
             }
+            Console.WriteLine();
         }
 
-        static void Show(double[] y1, double[] y2, string str = "")
+        static void ShowMatr(double[,] mas)
         {
-            Console.WriteLine(str);
-            double[] norma = new double[y1.Length];
-            for (int i = 0; i < y1.Length; i++)
+            int rows = mas.GetUpperBound(0) + 1;
+            int columns = mas.Length / rows;
+
+            for (int i = 0; i < rows; i++)
             {
-                norma[i] = Math.Abs(y1[i] - y2[i]);
+                for (int j = 0; j < columns; j++) { 
+                    Console.Write("{0:f3}", mas[i, j]);
+                    Console.Write(' ');
+                }
+                Console.WriteLine();
             }
-            Show(norma, str);
+
+        }
+
+        static double[] getLine(double[,] y, int lineNum)
+        {
+            int rows = y.GetUpperBound(0) + 1;
+            int columns = y.Length / rows;
+            double[] res = new double[columns];
+            for (int i = 0; i < columns;i++)
+            {
+                res[i] = y[lineNum, i];
+            }
+            return res;
         }
 
         static void Main(string[] args)
         {
             try
             {
-                
-                double tau = 0.05;
-
+                double time, tau;
+                double[,] y;
                 int LineByTime(double tau, double time) => (int)Math.Round(time / tau);//0, 1 ... N_2 - 1
 
+                tau = 0.05;
+                y = Solver.Solve(tau);
+                time = 0.1;
+                ShowLikeColumn(getLine(y, LineByTime(tau, time)));
+                time = 0.5;
+                ShowLikeColumn(getLine(y, LineByTime(tau, time)));
 
-                int N;
-
+                tau = 0.01;
+                y = Solver.Solve(tau);
+                time = 0.1;
+                ShowLikeColumn(getLine(y, LineByTime(tau, time)));
+                time = 0.5;
+                ShowLikeColumn(getLine(y, LineByTime(tau, time)));
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }
         }
